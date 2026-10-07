@@ -10,7 +10,7 @@ Official Go client for WowSQL. All data operations communicate directly with Pos
 ## Installation
 
 ```bash
-go get github.com/wowsql/sdk-go
+go get github.com/WoWSQL/WoWSQL-go/v3
 ```
 
 ## Quick Start
@@ -20,7 +20,7 @@ package main
 
 import (
     "fmt"
-    wowsql "github.com/wowsql/sdk-go"
+    wowsql "github.com/WoWSQL/WoWSQL-go/v3/wowsql"
 )
 
 func main() {

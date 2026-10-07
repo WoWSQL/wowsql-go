@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/wowsql/wowsql-go/wowsql"
+	"github.com/WoWSQL/WoWSQL-go/v3/wowsql"
 )
 
 const storageBucket = "default"
