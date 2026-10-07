@@ -346,26 +346,59 @@ func (c *AuthClient) ResetPassword(token, newPassword string) (map[string]interf
 // SendOTP sends an OTP code to the user's email.
 // Purpose must be "login", "signup", or "password_reset".
 func (c *AuthClient) SendOTP(email, purpose string) (map[string]interface{}, error) {
+	return c.sendOTP(email, "", purpose)
+}
+
+// SendOTPPhone sends an OTP code via SMS to the user's phone (E.164).
+func (c *AuthClient) SendOTPPhone(phone, purpose string) (map[string]interface{}, error) {
+	return c.sendOTP("", phone, purpose)
+}
+
+func (c *AuthClient) sendOTP(email, phone, purpose string) (map[string]interface{}, error) {
 	if purpose != "login" && purpose != "signup" && purpose != "password_reset" {
 		return nil, fmt.Errorf("purpose must be 'login', 'signup', or 'password_reset'")
 	}
-	return c.postSimple("/otp/send", map[string]interface{}{
-		"email":   email,
-		"purpose": purpose,
-	})
+	if (email == "") == (phone == "") {
+		return nil, fmt.Errorf("provide exactly one of email or phone")
+	}
+	payload := map[string]interface{}{"purpose": purpose}
+	if email != "" {
+		payload["email"] = email
+	}
+	if phone != "" {
+		payload["phone"] = phone
+	}
+	return c.postSimple("/otp/send", payload)
 }
 
-// VerifyOTP verifies OTP and completes authentication.
+// VerifyOTP verifies an email OTP and completes authentication.
 // For password_reset purpose, newPassword is required.
 func (c *AuthClient) VerifyOTP(email, otp, purpose string, newPassword ...string) (*AuthResponse, error) {
+	return c.verifyOTP(email, "", otp, purpose, newPassword...)
+}
+
+// VerifyOTPPhone verifies a phone OTP and completes authentication.
+func (c *AuthClient) VerifyOTPPhone(phone, otp, purpose string, newPassword ...string) (*AuthResponse, error) {
+	return c.verifyOTP("", phone, otp, purpose, newPassword...)
+}
+
+func (c *AuthClient) verifyOTP(email, phone, otp, purpose string, newPassword ...string) (*AuthResponse, error) {
 	if purpose != "login" && purpose != "signup" && purpose != "password_reset" {
 		return nil, fmt.Errorf("purpose must be 'login', 'signup', or 'password_reset'")
+	}
+	if (email == "") == (phone == "") {
+		return nil, fmt.Errorf("provide exactly one of email or phone")
 	}
 
 	payload := map[string]interface{}{
-		"email":   email,
 		"otp":     otp,
 		"purpose": purpose,
+	}
+	if email != "" {
+		payload["email"] = email
+	}
+	if phone != "" {
+		payload["phone"] = phone
 	}
 
 	if purpose == "password_reset" {

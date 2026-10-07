@@ -45,10 +45,10 @@ go run examples/main.go
 cd sdk/go
 git init
 git add .
-git commit -m "Release v1.0.0"
-git tag v1.0.0
-git remote add origin https://github.com/wowsql/wowsql-go.git
-git push origin main v1.0.0
+git commit -m "Release v3.9.0"
+git tag v3.9.0
+git remote add origin https://github.com/WoWSQL/WoWSQL-go.git
+git push origin main v3.9.0
 ```
 
 ---

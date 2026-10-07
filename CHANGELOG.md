@@ -5,6 +5,13 @@ All notable changes to the WOWSQL Go SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.1] - 2026-10-07
+
+### Added - Phone OTP (SMS)
+- `sendOtp` / `verifyOtp` (and language equivalents) accept either **email** or **phone** (exactly one)
+- Existing email OTP call sites remain backward compatible
+
+
 ## [3.9.0] - 2026-08-20
 
 ### Added - Realtime
@@ -12,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `client.Realtime().Subscribe()` for Postgres `INSERT` / `UPDATE` / `DELETE` (and `*`)
 - WebSocket auth: `wss://<project>/realtime/v1/websocket?apikey=<anon or service_role key>`
 - Auto-reconnect after disconnect; unsubscribe / disconnect clean local and server state
-- `client.Realtime().Channel(name)` — ephemeral broadcast (`Send`) and presence (`Track` / `PresenceState`)
+- `client.Realtime().Channel(name)` â€” ephemeral broadcast (`Send`) and presence (`Track` / `PresenceState`)
 - `github.com/gorilla/websocket` dependency
 
 ### Documentation
@@ -21,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.0] - 2025-11-22
 
-### Added - Schema Management 🔧
+### Added - Schema Management ðŸ”§
 
 - **New `SchemaClient` struct** for programmatic database schema management
 - Full schema CRUD operations with service role key authentication
@@ -91,7 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2025-10-17
 
-### Added - Initial Release 🎉
+### Added - Initial Release ðŸŽ‰
 
 #### Database Client
 - **Full CRUD operations** - Create, Read, Update, Delete
@@ -138,14 +145,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `FileUploadResult` - Upload operation result
 
 #### Features
-- 🚀 Zero configuration required
-- 🔒 Secure API key authentication
-- ⚡ Fast and efficient with net/http
-- 🛡️ Comprehensive error handling
-- 📝 Full GoDoc documentation
-- 🎯 Idiomatic Go code
-- ✅ Production ready
-- 🔄 Context support (planned for v1.1.0)
+- ðŸš€ Zero configuration required
+- ðŸ”’ Secure API key authentication
+- âš¡ Fast and efficient with net/http
+- ðŸ›¡ï¸ Comprehensive error handling
+- ðŸ“ Full GoDoc documentation
+- ðŸŽ¯ Idiomatic Go code
+- âœ… Production ready
+- ðŸ”„ Context support (planned for v1.1.0)
 
 ### Documentation
 - Complete README with usage examples
@@ -171,7 +178,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Under Consideration
 
-- [x] Real-time subscriptions (WebSocket) — shipped in 3.9.0
+- [x] Real-time subscriptions (WebSocket) â€” shipped in 3.9.0
 - [ ] Code generation for models from schema
 - [ ] Migration tools
 - [ ] GraphQL-like nested queries
@@ -186,10 +193,10 @@ We welcome contributions! Please see [CONTRIBUTING.md](../../CONTRIBUTING.md) fo
 
 ## Support
 
-- 📧 Email: support@wowsql.com
-- 💬 Discord: [Join our community](https://discord.gg/WOWSQL)
-- 📚 Documentation: [https://wowsql.com/docs](https://wowsql.com/docs)
-- 🐛 Issues: [GitHub Issues](https://github.com/wowsql/wowsql/issues)
+- ðŸ“§ Email: support@wowsql.com
+- ðŸ’¬ Discord: [Join our community](https://discord.gg/WOWSQL)
+- ðŸ“š Documentation: [https://wowsql.com/docs](https://wowsql.com/docs)
+- ðŸ› Issues: [GitHub Issues](https://github.com/wowsql/wowsql/issues)
 
 ---
 
