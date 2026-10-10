@@ -142,6 +142,7 @@ type signUpRequest struct {
 	Password     string                 `json:"password"`
 	FullName     *string                `json:"full_name,omitempty"`
 	UserMetadata map[string]interface{} `json:"user_metadata,omitempty"`
+	CaptchaToken *string                `json:"captcha_token,omitempty"`
 }
 
 type authAPIResponse struct {
@@ -234,12 +235,31 @@ func WithUserMetadata(metadata map[string]interface{}) func(*signUpRequest) {
 	return func(req *signUpRequest) { req.UserMetadata = metadata }
 }
 
+// WithCaptchaToken sets an optional Turnstile token for SignUp.
+func WithCaptchaToken(token string) func(*signUpRequest) {
+	return func(req *signUpRequest) { req.CaptchaToken = &token }
+}
+
+func firstCaptcha(tokens []string) string {
+	if len(tokens) > 0 {
+		return tokens[0]
+	}
+	return ""
+}
+
+func putCaptcha(payload map[string]interface{}, token string) {
+	if token != "" {
+		payload["captcha_token"] = token
+	}
+}
+
 // SignIn authenticates an existing user.
-func (c *AuthClient) SignIn(email, password string) (*AuthResponse, error) {
-	payload := map[string]string{
+func (c *AuthClient) SignIn(email, password string, captchaToken ...string) (*AuthResponse, error) {
+	payload := map[string]interface{}{
 		"email":    email,
 		"password": password,
 	}
+	putCaptcha(payload, firstCaptcha(captchaToken))
 
 	body, err := c.doRequest("POST", "/login", payload, nil)
 	if err != nil {
@@ -331,8 +351,10 @@ func (c *AuthClient) ExchangeOAuthCallback(provider, code string, redirectURI ..
 }
 
 // ForgotPassword requests a password reset email.
-func (c *AuthClient) ForgotPassword(email string) (map[string]interface{}, error) {
-	return c.postSimple("/forgot-password", map[string]interface{}{"email": email})
+func (c *AuthClient) ForgotPassword(email string, captchaToken ...string) (map[string]interface{}, error) {
+	payload := map[string]interface{}{"email": email}
+	putCaptcha(payload, firstCaptcha(captchaToken))
+	return c.postSimple("/forgot-password", payload)
 }
 
 // ResetPassword resets password with a token.
@@ -345,16 +367,16 @@ func (c *AuthClient) ResetPassword(token, newPassword string) (map[string]interf
 
 // SendOTP sends an OTP code to the user's email.
 // Purpose must be "login", "signup", or "password_reset".
-func (c *AuthClient) SendOTP(email, purpose string) (map[string]interface{}, error) {
-	return c.sendOTP(email, "", purpose)
+func (c *AuthClient) SendOTP(email, purpose string, captchaToken ...string) (map[string]interface{}, error) {
+	return c.sendOTP(email, "", purpose, firstCaptcha(captchaToken))
 }
 
 // SendOTPPhone sends an OTP code via SMS to the user's phone (E.164).
-func (c *AuthClient) SendOTPPhone(phone, purpose string) (map[string]interface{}, error) {
-	return c.sendOTP("", phone, purpose)
+func (c *AuthClient) SendOTPPhone(phone, purpose string, captchaToken ...string) (map[string]interface{}, error) {
+	return c.sendOTP("", phone, purpose, firstCaptcha(captchaToken))
 }
 
-func (c *AuthClient) sendOTP(email, phone, purpose string) (map[string]interface{}, error) {
+func (c *AuthClient) sendOTP(email, phone, purpose, captchaToken string) (map[string]interface{}, error) {
 	if purpose != "login" && purpose != "signup" && purpose != "password_reset" {
 		return nil, fmt.Errorf("purpose must be 'login', 'signup', or 'password_reset'")
 	}
@@ -368,6 +390,7 @@ func (c *AuthClient) sendOTP(email, phone, purpose string) (map[string]interface
 	if phone != "" {
 		payload["phone"] = phone
 	}
+	putCaptcha(payload, captchaToken)
 	return c.postSimple("/otp/send", payload)
 }
 
@@ -431,14 +454,16 @@ func (c *AuthClient) verifyOTP(email, phone, otp, purpose string, newPassword ..
 
 // SendMagicLink sends a magic link to the user's email.
 // Purpose must be "login", "signup", or "email_verification".
-func (c *AuthClient) SendMagicLink(email, purpose string) (map[string]interface{}, error) {
+func (c *AuthClient) SendMagicLink(email, purpose string, captchaToken ...string) (map[string]interface{}, error) {
 	if purpose != "login" && purpose != "signup" && purpose != "email_verification" {
 		return nil, fmt.Errorf("purpose must be 'login', 'signup', or 'email_verification'")
 	}
-	return c.postSimple("/magic-link/send", map[string]interface{}{
+	payload := map[string]interface{}{
 		"email":   email,
 		"purpose": purpose,
-	})
+	}
+	putCaptcha(payload, firstCaptcha(captchaToken))
+	return c.postSimple("/magic-link/send", payload)
 }
 
 // VerifyEmail verifies an email using a token.
@@ -447,8 +472,10 @@ func (c *AuthClient) VerifyEmail(token string) (map[string]interface{}, error) {
 }
 
 // ResendVerification resends the verification email.
-func (c *AuthClient) ResendVerification(email string) (map[string]interface{}, error) {
-	return c.postSimple("/resend-verification", map[string]interface{}{"email": email})
+func (c *AuthClient) ResendVerification(email string, captchaToken ...string) (map[string]interface{}, error) {
+	payload := map[string]interface{}{"email": email}
+	putCaptcha(payload, firstCaptcha(captchaToken))
+	return c.postSimple("/resend-verification", payload)
 }
 
 // Logout invalidates the current session.

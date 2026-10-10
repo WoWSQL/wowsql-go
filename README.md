@@ -254,6 +254,23 @@ user, err := auth.GetUser(session.AccessToken)
 err = auth.Logout(session.AccessToken)
 ```
 
+### CAPTCHA (Turnstile)
+
+Optional. Only required when Attack Protection → Turnstile is enabled. Existing calls without a token are unchanged.
+
+```go
+// 1. GET /auth/v1/settings → captcha.site_key
+// 2. Render Cloudflare Turnstile with that site key
+// 3. Pass the token:
+resp, err := auth.SignUp("user@example.com", "secure-password",
+    wowsql.WithCaptchaToken(turnstileToken))
+resp, err := auth.SignIn("user@example.com", "secure-password", turnstileToken)
+_, err = auth.ForgotPassword("user@example.com", turnstileToken)
+_, err = auth.SendOTP("user@example.com", "login", turnstileToken)
+_, err = auth.SendMagicLink("user@example.com", "login", turnstileToken)
+_, err = auth.ResendVerification("user@example.com", turnstileToken)
+```
+
 ### OAuth
 
 ```go
