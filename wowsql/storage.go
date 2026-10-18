@@ -281,6 +281,7 @@ func (s *StorageClient) Upload(bucketName string, reader io.Reader, opts ...Uplo
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("apikey", s.apiKey)
 	req.Header.Set("Authorization", "Bearer "+s.apiKey)
 
 	resp, err := s.httpClient.Do(req)
@@ -367,6 +368,7 @@ func (s *StorageClient) Download(bucketName, filePath string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+	req.Header.Set("apikey", s.apiKey)
 	req.Header.Set("Authorization", "Bearer "+s.apiKey)
 
 	resp, err := s.httpClient.Do(req)
@@ -421,8 +423,8 @@ func (s *StorageClient) DeleteFile(bucketName, filePath string) (map[string]inte
 
 // GetPublicURL returns the public URL for a file in a public bucket.
 func (s *StorageClient) GetPublicURL(bucketName, filePath string) string {
-	return fmt.Sprintf("%s/api/v1/storage/projects/%s/files/%s/%s",
-		s.baseURL, s.projectSlug, bucketName, filePath)
+	return fmt.Sprintf("%s/storage/v1/object/public/%s/%s",
+		s.baseURL, bucketName, filePath)
 }
 
 // GetStats returns storage statistics for the project.
@@ -478,6 +480,7 @@ func (s *StorageClient) doJSON(method, path string, body interface{}) ([]byte, e
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("apikey", s.apiKey)
 	req.Header.Set("Authorization", "Bearer "+s.apiKey)
 
 	resp, err := s.httpClient.Do(req)

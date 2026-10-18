@@ -36,8 +36,12 @@ type AuthSession struct {
 
 // AuthResponse combines user (if available) with session tokens.
 type AuthResponse struct {
-	Session *AuthSession `json:"session,omitempty"`
-	User    *AuthUser    `json:"user,omitempty"`
+	Session      *AuthSession `json:"session,omitempty"`
+	User         *AuthUser    `json:"user,omitempty"`
+	Requires2FA  bool         `json:"requires_2fa,omitempty"`
+	PendingToken string       `json:"pending_token,omitempty"`
+	Method       string       `json:"method,omitempty"`
+	Email        string       `json:"email,omitempty"`
 }
 
 // ── Token storage ───────────────────────────────────────────────
@@ -151,6 +155,11 @@ type authAPIResponse struct {
 	RefreshToken string    `json:"refresh_token"`
 	TokenType    string    `json:"token_type"`
 	ExpiresIn    int       `json:"expires_in"`
+	Requires2FA  bool      `json:"requires_2fa"`
+	PendingToken string    `json:"pending_token"`
+	TempToken    string    `json:"temp_token"`
+	Method       string    `json:"method"`
+	Email        string    `json:"email"`
 }
 
 // ── AuthClient ──────────────────────────────────────────────────
@@ -271,6 +280,18 @@ func (c *AuthClient) SignIn(email, password string, captchaToken ...string) (*Au
 		return nil, fmt.Errorf("failed to parse login response: %w", err)
 	}
 
+	if resp.Requires2FA {
+		pending := resp.PendingToken
+		if pending == "" {
+			pending = resp.TempToken
+		}
+		return &AuthResponse{
+			Requires2FA:  true,
+			PendingToken: pending,
+			Method:       resp.Method,
+			Email:        resp.Email,
+		}, nil
+	}
 	session := c.persistSession(&resp)
 	return &AuthResponse{Session: session, User: nil}, nil
 }
@@ -527,6 +548,99 @@ func (c *AuthClient) RefreshToken(refreshTokenOverride ...string) (*AuthResponse
 	return &AuthResponse{Session: session, User: nil}, nil
 }
 
+func (c *AuthClient) authBearer() map[string]string {
+	token := c.storage.GetAccessToken()
+	if token == "" {
+		return nil
+	}
+	return map[string]string{"Authorization": "Bearer " + token}
+}
+
+func (c *AuthClient) GetTwoFactorStatus() (map[string]interface{}, error) {
+	body, err := c.doRequest("GET", "/2fa/status", nil, c.authBearer())
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *AuthClient) SetupTOTP() (map[string]interface{}, error) {
+	body, err := c.doRequest("POST", "/2fa/setup-totp", map[string]interface{}{}, c.authBearer())
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	json.Unmarshal(body, &result)
+	return result, nil
+}
+
+func (c *AuthClient) EnableTOTP(code string) (map[string]interface{}, error) {
+	body, err := c.doRequest("POST", "/2fa/verify-and-enable", map[string]interface{}{
+		"code": code, "method": "totp",
+	}, c.authBearer())
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	json.Unmarshal(body, &result)
+	return result, nil
+}
+
+func (c *AuthClient) DisableTOTP(code, backupCode string) (map[string]interface{}, error) {
+	payload := map[string]interface{}{"method": "totp"}
+	if code != "" {
+		payload["code"] = code
+	}
+	if backupCode != "" {
+		payload["backup_code"] = backupCode
+	}
+	body, err := c.doRequest("POST", "/2fa/disable", payload, c.authBearer())
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	json.Unmarshal(body, &result)
+	return result, nil
+}
+
+func (c *AuthClient) RegenerateRecoveryCodes(code string) (map[string]interface{}, error) {
+	body, err := c.doRequest("POST", "/2fa/recovery-codes", map[string]interface{}{
+		"code": code, "method": "totp",
+	}, c.authBearer())
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	json.Unmarshal(body, &result)
+	return result, nil
+}
+
+func (c *AuthClient) VerifyTwoFactorLogin(pendingToken, code, backupCode string) (*AuthResponse, error) {
+	payload := map[string]interface{}{
+		"pending_token": pendingToken,
+		"temp_token":    pendingToken,
+	}
+	if code != "" {
+		payload["code"] = code
+	}
+	if backupCode != "" {
+		payload["backup_code"] = backupCode
+	}
+	body, err := c.doRequest("POST", "/2fa/verify-login", payload, nil)
+	if err != nil {
+		return nil, err
+	}
+	var resp authAPIResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, err
+	}
+	return &AuthResponse{Session: c.persistSession(&resp), User: resp.User}, nil
+}
+
 // ChangePassword changes the authenticated user's password.
 func (c *AuthClient) ChangePassword(currentPassword, newPassword string, tokenOverride ...string) (map[string]interface{}, error) {
 	token := c.resolveAccessToken(tokenOverride...)
@@ -618,6 +732,9 @@ func (c *AuthClient) resolveAccessToken(overrides ...string) string {
 }
 
 func (c *AuthClient) persistSession(resp *authAPIResponse) *AuthSession {
+	if resp.AccessToken == "" {
+		return nil
+	}
 	session := &AuthSession{
 		AccessToken:  resp.AccessToken,
 		RefreshToken: resp.RefreshToken,
@@ -663,6 +780,7 @@ func (c *AuthClient) doRequest(method, path string, body interface{}, headers ma
 
 	req.Header.Set("Content-Type", "application/json")
 	if c.apiKey != "" {
+		req.Header.Set("apikey", c.apiKey)
 		req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	}
 	for k, v := range headers {

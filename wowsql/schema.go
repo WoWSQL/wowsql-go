@@ -227,6 +227,7 @@ func (s *SchemaClient) DropTable(tableName string, cascade ...bool) (map[string]
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+	req.Header.Set("apikey", s.serviceKey)
 	req.Header.Set("Authorization", "Bearer "+s.serviceKey)
 
 	resp, err := s.httpClient.Do(req)
@@ -400,6 +401,7 @@ func (s *SchemaClient) doRequest(method, path string, body interface{}) (map[str
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
+	req.Header.Set("apikey", s.serviceKey)
 	req.Header.Set("Authorization", "Bearer "+s.serviceKey)
 	req.Header.Set("Content-Type", "application/json")
 

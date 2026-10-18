@@ -135,6 +135,7 @@ func (c *Client) doRequestRaw(method, url string, body interface{}) ([]byte, *ht
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("apikey", c.apiKey)
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -180,6 +181,7 @@ func (c *Client) doRequestWithHeaders(method, path string, body interface{}, hea
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("apikey", c.apiKey)
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
